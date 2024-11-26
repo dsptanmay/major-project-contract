@@ -14,6 +14,7 @@ contract UserManagedNFTNew is ERC721, AccessControl {
         keccak256("VERIFIED_USER_ROLE");
 
     mapping(uint256 => string) private tokenIPFSHashes;
+    mapping(uint256 => string) private tokenTitles; // New mapping for token titles
     mapping(uint256 => address) private tokenMinters;
     mapping(uint256 => mapping(address => bool)) private accessPermissions;
 
@@ -28,34 +29,19 @@ contract UserManagedNFTNew is ERC721, AccessControl {
 
     function mintNFT(
         address to,
-        string memory ipfsHash
+        string memory ipfsHash,
+        string memory title // Accept title as a parameter
     ) external returns (uint256) {
         uint256 newTokenId = _tokenIds.current();
         _tokenIds.increment();
 
         _mint(to, newTokenId);
         tokenIPFSHashes[newTokenId] = ipfsHash;
+        tokenTitles[newTokenId] = title; // Store the title
         tokenMinters[newTokenId] = msg.sender;
         accessPermissions[newTokenId][to] = true; // Minter has initial access
 
         return newTokenId;
-    }
-
-    function grantAccess(uint256 tokenId, address user) external {
-        require(
-            tokenMinters[tokenId] == msg.sender ||
-                ownerOf(tokenId) == msg.sender,
-            "Access restricted to minter or owner"
-        );
-        accessPermissions[tokenId][user] = true;
-    }
-
-    function revokeAccess(uint256 tokenId, address user) external {
-        require(
-            tokenMinters[tokenId] == msg.sender,
-            "Only minter can revoke access"
-        );
-        accessPermissions[tokenId][user] = false;
     }
 
     function getIPFSHash(
@@ -87,6 +73,13 @@ contract UserManagedNFTNew is ERC721, AccessControl {
         );
 
         return tokenIPFSHashes[tokenId];
+    }
+
+    function getTokenTitle(
+        uint256 tokenId
+    ) external view returns (string memory) {
+        require(_exists(tokenId), "Token does not exist");
+        return tokenTitles[tokenId]; // Return the title
     }
 
     // Helper function to check if an IPFS hash is stored for a specific token
